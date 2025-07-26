@@ -81,44 +81,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Handle "Show Questions" button click
-    async function handleShowQuestions(event) {
-        event.preventDefault();
-        
-        const selectedChapter = chapterSelect.value;
-        const selectedTopic = topicSelect.value;
-        const selectedYear = yearSelect.value;
-        
-        if (!selectedChapter) {
-            alert('Please select a chapter');
-            return;
-        }
-        
-        // Show loader and clear previous results
-        loader.classList.remove('hidden');
-        questionDisplayArea.innerHTML = '';
-        
-        try {
-            // Fetch questions from Netlify function
-            const response = await fetch(`/.netlify/functions/getQuestions?chapter=${selectedChapter}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const questions = await response.json();
-            
-            // Filter questions based on selected topic and year
-            const filteredQuestions = filterQuestions(questions, selectedTopic, selectedYear);
-            
-            // Display filtered questions
-            displayQuestions(filteredQuestions);
-        } catch (error) {
-            console.error('Error fetching questions:', error);
-            questionDisplayArea.innerHTML = '<p class="error">Failed to load questions. Please try again later.</p>';
-        } finally {
-            loader.classList.add('hidden');
-        }
+async function handleShowQuestions(event) {
+    event.preventDefault();
+    
+    const selectedChapter = chapterSelect.value;
+    const selectedTopic = topicSelect.value;
+    const selectedYear = yearSelect.value;
+    
+    if (!selectedChapter) {
+        alert('Please select a chapter');
+        return;
     }
+    
+    // Show loader and clear previous results
+    loader.classList.remove('hidden');
+    questionDisplayArea.innerHTML = '';
+    
+    try {
+        // Fetch questions from Netlify function
+        const response = await fetch(`/.netlify/functions/getQuestions?chapter=${selectedChapter}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const questions = await response.json();
+        
+        // Filter questions based on selected topic and year
+        const filteredQuestions = filterQuestions(questions, selectedTopic, selectedYear);
+        
+        // Display filtered questions
+        displayQuestions(filteredQuestions);
+    } catch (error) {
+        console.error('Error fetching questions:', error);
+        questionDisplayArea.innerHTML = '<p class="error">Failed to load questions. Please try again later.</p>';
+    } finally {
+        loader.classList.add('hidden');
+    }
+}
     
     // Filter questions based on topic and year
     function filterQuestions(questions, topic, year) {
