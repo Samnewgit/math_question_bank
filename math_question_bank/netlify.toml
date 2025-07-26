@@ -1,6 +1,4 @@
-[build]
-publish = "public"
-functions = "netlify/functions"
+# netlify.toml
 
 [functions]
-included_files = ["data/**"]
+  included_files = ["data/**"]
