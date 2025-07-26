@@ -15,8 +15,12 @@ exports.handler = async (event, context) => {
         const sanitizedChapter = chapter.replace(/[^a-z0-9]/gi, '').toLowerCase();
         const filename = `${sanitizedChapter}_all.json`;
         
-        // Look for data within the functions directory
-        const filePath = path.join(__dirname, 'data/questions', filename);
+        // With included_files, data should be available at this path
+        const filePath = path.join(__dirname, '../../data/questions', filename);
+        
+        // Log the exact path for debugging
+        console.log('Looking for file at:', filePath);
+        console.log('File exists:', fs.existsSync(filePath));
         
         if (!fs.existsSync(filePath)) {
             return {
