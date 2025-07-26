@@ -1,0 +1,33 @@
+{
+  "chapters": {
+    "calculus": {
+      "displayName": "Calculus",
+      "topics": [
+        "Definite Integrals", 
+        "Area Under Curve", 
+        "Differential Equations",
+        "Limits and Continuity",
+        "Applications of Derivatives"
+      ]
+    },
+    "matrices": {
+      "displayName": "Matrices",
+      "topics": [
+        "Inverse of a Matrix", 
+        "System of Equations",
+        "Determinants",
+        "Eigenvalues and Eigenvectors"
+      ]
+    },
+    "algebra": {
+      "displayName": "Algebra",
+      "topics": [
+        "Polynomials",
+        "Quadratic Equations",
+        "Sequences and Series",
+        "Logarithms"
+      ]
+    }
+  },
+  "years": [2023, 2022, 2021, 2020, 2019]
+}
