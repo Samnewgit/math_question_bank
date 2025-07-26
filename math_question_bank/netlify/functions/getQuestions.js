@@ -18,10 +18,6 @@ exports.handler = async (event, context) => {
         // With included_files, data should be available at this path
         const filePath = path.join(__dirname, '../../data/questions', filename);
         
-        // Log the exact path for debugging
-        console.log('Looking for file at:', filePath);
-        console.log('File exists:', fs.existsSync(filePath));
-        
         if (!fs.existsSync(filePath)) {
             return {
                 statusCode: 404,
