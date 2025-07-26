@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
         
         const sanitizedChapter = chapter.replace(/[^a-z0-9]/gi, '').toLowerCase();
         
-        // For Netlify deployment, data is at the root level
+        // Always use root data folder for Netlify functions
         const filePath = path.join(process.cwd(), '..', 'data', 'questions', `${sanitizedChapter}_all.json`);
         
         if (!fs.existsSync(filePath)) {
