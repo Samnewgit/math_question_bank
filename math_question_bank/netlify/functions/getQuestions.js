@@ -3,10 +3,29 @@ const path = require('path');
 
 exports.handler = async (event, context) => {
     try {
-        console.log('=== Function Debug Info ===');
-        console.log('Current working directory:', process.cwd());
+        console.log('=== FILE LOCATION DEBUG ===');
         console.log('Function directory:', __dirname);
-        console.log('Event:', JSON.stringify(event, null, 2));
+        console.log('Current working directory:', process.cwd());
+        
+        // List contents of current directory
+        try {
+            console.log('Current directory contents:', fs.readdirSync('.'));
+        } catch (e) {
+            console.log('Could not read current directory:', e.message);
+        }
+        
+        // List contents of parent directories
+        try {
+            console.log('Parent directory contents:', fs.readdirSync('..'));
+        } catch (e) {
+            console.log('Could not read parent directory:', e.message);
+        }
+        
+        try {
+            console.log('Parent of parent directory contents:', fs.readdirSync('../..'));
+        } catch (e) {
+            console.log('Could not read parent of parent directory:', e.message);
+        }
         
         const { chapter } = event.queryStringParameters || {};
         
@@ -17,58 +36,61 @@ exports.handler = async (event, context) => {
             };
         }
         
-        console.log('Requested chapter:', chapter);
-        
         const sanitizedChapter = chapter.replace(/[^a-z0-9]/gi, '').toLowerCase();
-        console.log('Sanitized chapter:', sanitizedChapter);
+        const filename = `${sanitizedChapter}_all.json`;
         
-        // Try multiple possible paths
-        const possiblePaths = [
-            path.join(__dirname, '../../data/questions', `${sanitizedChapter}_all.json`),
-            path.join(process.cwd(), 'data/questions', `${sanitizedChapter}_all.json`),
-            path.join(process.cwd(), '../data/questions', `${sanitizedChapter}_all.json`),
-            path.join(__dirname, '../../../data/questions', `${sanitizedChapter}_all.json`)
+        console.log(`Looking for chapter: ${sanitizedChapter}`);
+        console.log(`Filename: ${filename}`);
+        
+        // Try multiple paths in order of likelihood
+        const searchPaths = [
+            path.join(__dirname, '../../data/questions', filename),  // Most likely
+            path.join(process.cwd(), 'data/questions', filename),    // Alternative
+            path.join(__dirname, '../../../data/questions', filename), // If nested deeper
+            `./data/questions/${filename}`,                          // Relative from cwd
+            `../data/questions/${filename}`,                         // One level up
+            `../../data/questions/${filename}`,                      // Two levels up
+            `/var/task/data/questions/${filename}`,                  // Absolute path
         ];
         
         let filePath = null;
-        console.log('Trying possible paths:');
+        let fileData = null;
         
-        for (let i = 0; i < possiblePaths.length; i++) {
-            const possiblePath = possiblePaths[i];
-            const exists = fs.existsSync(possiblePath);
-            console.log(`  ${i + 1}. ${possiblePath} - ${exists ? 'FOUND' : 'NOT FOUND'}`);
-            
-            if (exists) {
-                filePath = possiblePath;
-                break;
+        console.log('Searching in the following paths:');
+        for (let i = 0; i < searchPaths.length; i++) {
+            const searchPath = searchPaths[i];
+            try {
+                console.log(`  ${i + 1}. Checking: ${searchPath}`);
+                if (fs.existsSync(searchPath)) {
+                    console.log(`     FOUND! Reading file...`);
+                    fileData = fs.readFileSync(searchPath, 'utf8');
+                    filePath = searchPath;
+                    console.log(`     File size: ${fileData.length} characters`);
+                    break;
+                } else {
+                    console.log(`     NOT FOUND`);
+                }
+            } catch (e) {
+                console.log(`     ERROR: ${e.message}`);
             }
         }
         
-        if (!filePath) {
-            console.log('No valid file path found!');
-            // List files in the data directory for debugging
-            try {
-                const dataDir = path.join(__dirname, '../../data/questions');
-                console.log('Contents of data/questions directory:');
-                console.log(fs.readdirSync(dataDir));
-            } catch (dirError) {
-                console.log('Could not read data directory:', dirError.message);
-            }
-            
+        if (!fileData) {
+            console.log('=== FILE NOT FOUND IN ANY LOCATION ===');
             return {
                 statusCode: 404,
-                body: JSON.stringify({ error: `Questions file not found for chapter: ${chapter}` })
+                body: JSON.stringify({ 
+                    error: `Questions file not found for chapter: ${chapter}`,
+                    searchedPaths: searchPaths
+                })
             };
         }
         
-        console.log('Using file path:', filePath);
+        console.log('Parsing JSON data...');
+        const questions = JSON.parse(fileData);
+        console.log(`Successfully parsed ${questions.length} questions`);
         
-        const data = fs.readFileSync(filePath, 'utf8');
-        const questions = JSON.parse(data);
-        
-        console.log('Returning questions count:', questions.length);
-        console.log('=== End Debug Info ===');
-        
+        console.log('=== SUCCESS ===');
         return {
             statusCode: 200,
             headers: {
@@ -78,11 +100,14 @@ exports.handler = async (event, context) => {
             body: JSON.stringify(questions)
         };
     } catch (error) {
-        console.error('Error in getQuestions function:', error);
-        
+        console.error('=== FUNCTION ERROR ===', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Internal server error', details: error.message })
+            body: JSON.stringify({ 
+                error: 'Internal server error', 
+                details: error.message,
+                stack: error.stack
+            })
         };
     }
 };
