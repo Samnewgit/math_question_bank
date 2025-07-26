@@ -3,10 +3,8 @@ const path = require('path');
 
 exports.handler = async (event, context) => {
     try {
-        // Get the chapter parameter from query string
         const { chapter } = event.queryStringParameters || {};
         
-        // Validate chapter parameter
         if (!chapter) {
             return {
                 statusCode: 400,
@@ -14,13 +12,11 @@ exports.handler = async (event, context) => {
             };
         }
         
-        // Sanitize chapter input to prevent directory traversal
         const sanitizedChapter = chapter.replace(/[^a-z0-9]/gi, '').toLowerCase();
         
-        // Construct file path
-        const filePath = path.join(__dirname, '../../data/questions', `${sanitizedChapter}_all.json`);
+        // For Netlify deployment, data is at the root level
+        const filePath = path.join(process.cwd(), '..', 'data', 'questions', `${sanitizedChapter}_all.json`);
         
-        // Check if file exists
         if (!fs.existsSync(filePath)) {
             return {
                 statusCode: 404,
@@ -28,7 +24,6 @@ exports.handler = async (event, context) => {
             };
         }
         
-        // Read and return the file content
         const data = fs.readFileSync(filePath, 'utf8');
         const questions = JSON.parse(data);
         
@@ -36,7 +31,7 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*', // Enable CORS
+                'Access-Control-Allow-Origin': '*',
             },
             body: JSON.stringify(questions)
         };
