@@ -1,4 +1,13 @@
-# netlify.toml
+# The most robust Netlify configuration for this project structure
 
+[build]
+  # This tells Netlify where your public-facing files are.
+  publish = "public"
+  # This tells Netlify where to find the serverless functions.
+  functions = "netlify/functions"
+
+# This section configures the functions themselves.
 [functions]
+  # This is the crucial line. It ensures the 'data' directory from the
+  # project root is included in every function's deployment package.
   included_files = ["data/**"]
