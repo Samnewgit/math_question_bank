@@ -1,1 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Math Question Bank</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async 
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Interactive Math Question Bank</h1>
+        <p>Select filters to view questions</p>
+    </header>
 
+    <main>
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="chapter-select">Chapter:</label>
+                <select id="chapter-select">
+                    <option value="">Select Chapter</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="topic-select">Topic:</label>
+                <select id="topic-select">
+                    <option value="">All Topics</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="year-select">Year:</label>
+                <select id="year-select">
+                    <option value="">All Years</option>
+                </select>
+            </div>
+            
+            <button id="show-btn">Show Questions</button>
+        </div>
+
+        <div id="loader" class="hidden">Loading questions...</div>
+
+        <div id="question-display-area">
+            <!-- Questions will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2023 Math Question Bank | MVP Version</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
