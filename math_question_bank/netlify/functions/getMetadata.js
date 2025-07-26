@@ -1,11 +1,9 @@
-// netlify/functions/getMetadata.js
-
 const fs = require('fs');
 const path = require('path');
 
 exports.handler = async (event) => {
   try {
-    // --- APPLY THE SAME FIX HERE ---
+    // This uses the same correct pathing logic.
     const dataPath = path.join(__dirname, '..', '..', 'data', 'metadata.json');
 
     const metadata = fs.readFileSync(dataPath, 'utf-8');
@@ -16,7 +14,6 @@ exports.handler = async (event) => {
       body: metadata,
     };
   } catch (error) {
-    console.error('Error reading metadata:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Could not load metadata.' }),
