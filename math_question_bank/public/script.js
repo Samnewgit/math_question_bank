@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedChapter) return;
         
         // Fetch metadata to get topics for selected chapter
-        fetch('./data/metadata.json')
+        fetch('math_question_bank/data/metadata.json')
             .then(response => response.json())
             .then(metadata => {
                 const chapterData = metadata.chapters[selectedChapter];
