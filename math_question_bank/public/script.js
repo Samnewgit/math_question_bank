@@ -1,187 +1,147 @@
+// public/script.js
+
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements
+    // Get references to all the HTML elements
     const chapterSelect = document.getElementById('chapter-select');
     const topicSelect = document.getElementById('topic-select');
     const yearSelect = document.getElementById('year-select');
-    const showBtn = document.getElementById('show-btn');
+    const showButton = document.getElementById('show-button'); // Assuming your button has this ID
     const loader = document.getElementById('loader');
-    const questionDisplayArea = document.getElementById('question-display-area');
-    
-    // Initialize the application
-    initializeApp();
-    
-    // Event Listeners
-    chapterSelect.addEventListener('change', updateTopicDropdown);
-    showBtn.addEventListener('click', handleShowQuestions);
-    
-    // Initialize the app by loading metadata
+    const displayArea = document.getElementById('question-display-area');
+
+    let metadata = {}; // We will store the fetched metadata here
+
+    // --- 1. INITIALIZATION: Fetch metadata from the SECURE function ---
     async function initializeApp() {
         try {
-            const response = await fetch('./data/metadata.json');
-            const metadata = await response.json();
+            // WRONG WAY: fetch('/data/metadata.json');
+            // RIGHT WAY: Fetch from the serverless function endpoint
+            const response = await fetch('/.netlify/functions/getMetadata');
             
-            populateChapterDropdown(metadata.chapters);
-            populateYearDropdown(metadata.years);
+            if (!response.ok) {
+                // If the function fails, throw an error
+                throw new Error('Network response from getMetadata was not ok');
+            }
+
+            metadata = await response.json();
+            
+            // Populate the Chapter dropdown
+            populateDropdown(chapterSelect, Object.keys(metadata.chapters), (key) => metadata.chapters[key].displayName);
+
+            // Populate the Year dropdown
+            const years = ["All Years", ...metadata.years];
+            populateDropdown(yearSelect, years);
+
+            // Add event listener to update Topics when a Chapter is chosen
+            chapterSelect.addEventListener('change', updateTopicDropdown);
+            updateTopicDropdown(); // Call it once to populate for the default chapter
+
         } catch (error) {
-            console.error('Error initializing app:', error);
-            questionDisplayArea.innerHTML = '<p class="error">Failed to load metadata. Please try again later.</p>';
+            console.error('Initialization Error:', error);
+            displayArea.innerHTML = '<p class="error-message">Failed to load metadata. Please try again later.</p>';
         }
     }
-    
-    // Populate chapter dropdown
-    function populateChapterDropdown(chapters) {
-        chapterSelect.innerHTML = '<option value="">Select Chapter</option>';
-        
-        Object.keys(chapters).forEach(key => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = chapters[key].displayName;
-            chapterSelect.appendChild(option);
-        });
-    }
-    
-    // Populate year dropdown
-    function populateYearDropdown(years) {
-        yearSelect.innerHTML = '<option value="">All Years</option>';
-        
-        years.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            yearSelect.appendChild(option);
-        });
-    }
-    
-    // Update topic dropdown based on selected chapter
-    function updateTopicDropdown() {
+
+    // --- 2. THE CORE LOGIC: Fetch questions from the SECURE function ---
+    async function handleShowQuestions() {
         const selectedChapter = chapterSelect.value;
-        
-        // Reset topic dropdown
-        topicSelect.innerHTML = '<option value="">All Topics</option>';
-        
-        if (!selectedChapter) return;
-        
-        // Fetch metadata to get topics for selected chapter
-        fetch('./data/metadata.json')
-            .then(response => response.json())
-            .then(metadata => {
-                const chapterData = metadata.chapters[selectedChapter];
-                if (chapterData && chapterData.topics) {
-                    chapterData.topics.forEach(topic => {
-                        const option = document.createElement('option');
-                        option.value = topic;
-                        option.textContent = topic;
-                        topicSelect.appendChild(option);
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error loading topics:', error);
-            });
-    }
-    
-    // Handle "Show Questions" button click
-    async function handleShowQuestions(event) {
-        event.preventDefault();
-        
-        const selectedChapter = chapterSelect.value;
-        const selectedTopic = topicSelect.value;
-        const selectedYear = yearSelect.value;
-        
         if (!selectedChapter) {
-            alert('Please select a chapter');
+            alert('Please select a chapter first.');
             return;
         }
-        
-        // Show loader and clear previous results
-        loader.classList.remove('hidden');
-        questionDisplayArea.innerHTML = '';
-        
+
+        loader.style.display = 'block';
+        displayArea.innerHTML = '';
+
         try {
-            // Fetch questions from Netlify function
+            // WRONG WAY: fetch(`/data/questions/${selectedChapter}_all.json`);
+            // RIGHT WAY: Fetch from the serverless function with a query parameter
             const response = await fetch(`/.netlify/functions/getQuestions?chapter=${selectedChapter}`);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error('Could not find questions for this chapter.');
             }
             
-            const questions = await response.json();
-            
-            // Filter questions based on selected topic and year
-            const filteredQuestions = filterQuestions(questions, selectedTopic, selectedYear);
-            
-            // Display filtered questions
-            displayQuestions(filteredQuestions);
+            const allQuestions = await response.json();
+            filterAndDisplayQuestions(allQuestions);
+
         } catch (error) {
-            console.error('Error fetching questions:', error);
-            questionDisplayArea.innerHTML = '<p class="error">Failed to load questions. Please try again later.</p>';
+            console.error('Fetch Questions Error:', error);
+            displayArea.innerHTML = `<p class="error-message">${error.message}</p>`;
         } finally {
-            loader.classList.add('hidden');
+            loader.style.display = 'none';
         }
     }
-    
-    // Filter questions based on topic and year
-    function filterQuestions(questions, topic, year) {
-        return questions.filter(question => {
-            const topicMatch = !topic || question.topic === topic;
-            const yearMatch = !year || question.year.toString() === year;
+
+    // --- 3. HELPER FUNCTIONS ---
+    function updateTopicDropdown() {
+        const selectedChapterKey = chapterSelect.value;
+        const topics = ["All Topics", ...(metadata.chapters[selectedChapterKey]?.topics || [])];
+        populateDropdown(topicSelect, topics);
+    }
+
+    function populateDropdown(selectElement, items, getDisplayName = item => item) {
+        selectElement.innerHTML = '';
+        items.forEach(item => {
+            const option = document.createElement('option');
+            // For chapters, the value is the key (e.g., 'calculus')
+            // For topics/years, the value is the display name itself.
+            option.value = item === metadata.chapters[item]?.displayName ? item : item;
+            option.textContent = getDisplayName(item);
+            selectElement.appendChild(option);
+        });
+    }
+
+    function filterAndDisplayQuestions(questions) {
+        const selectedTopic = topicSelect.value;
+        const selectedYear = yearSelect.value;
+
+        const filteredQuestions = questions.filter(q => {
+            const topicMatch = (selectedTopic === 'All Topics') || (q.topic === selectedTopic);
+            const yearMatch = (selectedYear === 'All Years') || (q.year == selectedYear);
             return topicMatch && yearMatch;
         });
-    }
-    
-    // Display questions in the UI
-    function displayQuestions(questions) {
-        if (questions.length === 0) {
-            questionDisplayArea.innerHTML = '<p class="no-results">No questions found matching your criteria.</p>';
+
+        if (filteredQuestions.length === 0) {
+            displayArea.innerHTML = '<p>No questions match your filter criteria.</p>';
             return;
         }
-        
-        questionDisplayArea.innerHTML = '';
-        
-        questions.forEach(question => {
-            const questionCard = createQuestionCard(question);
-            questionDisplayArea.appendChild(questionCard);
-        });
-        
-        // Re-render MathJax for new content
-        if (typeof MathJax !== 'undefined') {
-            MathJax.typesetPromise([questionDisplayArea]);
+
+        filteredQuestions.forEach(renderQuestion);
+        if (window.MathJax) {
+            MathJax.typesetPromise();
         }
     }
-    
-    // Create a question card element
-    function createQuestionCard(question) {
+
+    function renderQuestion(question) {
+        // ... (Your existing function to create the HTML for a question card)
+        // This part is likely correct already.
         const card = document.createElement('div');
         card.className = 'question-card';
-        
-        // Format LaTeX if present
-        const latexContent = question.latexCode ? 
-            `<div class="latex-display">$$${question.latexCode}$$</div>` : '';
-        
         card.innerHTML = `
-            <div class="question-header">
-                <span>${question.chapter}</span>
-                <span>${question.topic}</span>
-                <span>${question.year}</span>
+            <div class="question-meta">
+                <span>Chapter: ${question.chapter}</span>
+                <span>Topic: ${question.topic}</span>
+                <span>Year: ${question.year}</span>
             </div>
-            <div class="question-content">
-                <div class="question-text">${question.questionText}</div>
-                ${latexContent}
-                <div class="answer-container">
-                    <div class="answer-header">Show Answer</div>
-                    <div class="answer-content">
-                        <div class="answer-text">$$${question.answer}$$</div>
-                    </div>
-                </div>
+            <div class="question-body">
+                <p>${question.questionText || ''}</p>
+                ${question.latexCode ? `<div>$$${question.latexCode}$$</div>` : ''}
+            </div>
+            <div class="answer-container">
+                <div class="answer-header">Click to reveal answer</div>
+                <div class="answer-content">${question.answer}</div>
             </div>
         `;
-        
-        // Add click event to toggle answer visibility
-        const answerHeader = card.querySelector('.answer-header');
-        answerHeader.addEventListener('click', () => {
-            card.classList.toggle('expanded');
+        card.querySelector('.answer-container').addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('visible');
         });
-        
-        return card;
+        displayArea.appendChild(card);
     }
+
+    // --- 4. EVENT LISTENERS ---
+    showButton.addEventListener('click', handleShowQuestions);
+
+    // --- START THE APP ---
+    initializeApp();
 });
